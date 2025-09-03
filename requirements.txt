@@ -1,0 +1,31 @@
+# FastAPI and server dependencies
+fastapi
+uvicorn[standard]
+python-multipart
+
+# Pydantic for data validation
+pydantic
+pydantic-settings
+
+# LangChain dependencies
+langchain-groq
+langchain-core
+langchain-community
+langgraph
+
+# Vector store and embeddings
+faiss-cpu
+fastembed
+
+# Data processing
+pandas
+numpy
+
+# Visualization
+matplotlib
+
+# Environment management
+python-dotenv
+
+# Additional utilities
+typing-extensions

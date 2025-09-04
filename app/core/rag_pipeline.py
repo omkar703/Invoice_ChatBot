@@ -50,13 +50,33 @@ class InvoiceRAGPipeline:
         docs = []
         for filename, file_bytes in files:
             if filename.endswith('.json'):
-                # Load JSON and convert to pretty-printed string for embedding
+                # Load JSON and convert to structured text for embedding
                 try:
                     data = json.loads(file_bytes.decode('utf-8'))
-                    text = json.dumps(data, indent=2)
-                    docs.append(Document(page_content=text, metadata={"source": filename}))
+                    
+                    # Handle different JSON structures
+                    if isinstance(data, list):
+                        # If it's an array, process each item
+                        for i, item in enumerate(data):
+                            if isinstance(item, dict):
+                                text = json.dumps(item, indent=2)
+                                docs.append(Document(
+                                    page_content=text, 
+                                    metadata={"source": filename, "item_index": i}
+                                ))
+                    elif isinstance(data, dict):
+                        # If it's a single object, use it directly
+                        text = json.dumps(data, indent=2)
+                        docs.append(Document(page_content=text, metadata={"source": filename}))
+                    else:
+                        # For primitive types, convert to string
+                        text = str(data)
+                        docs.append(Document(page_content=text, metadata={"source": filename}))
+                        
                 except json.JSONDecodeError as e:
                     raise ValueError(f"Invalid JSON file {filename}: {str(e)}")
+                except Exception as e:
+                    raise ValueError(f"Error processing JSON file {filename}: {str(e)}")
             
             elif filename.endswith('.csv'):
                 # Save uploaded file to a temp path
@@ -68,7 +88,7 @@ class InvoiceRAGPipeline:
                     loader = CSVLoader(file_path=temp_path, source_column=None)
                     csv_docs = loader.load()
                     # Concatenate all row contents into one document for the invoice
-                    text = "\\n".join(doc.page_content for doc in csv_docs)
+                    text = "\n".join(doc.page_content for doc in csv_docs)
                     docs.append(Document(page_content=text, metadata={"source": filename}))
                 finally:
                     os.remove(temp_path)  # Clean up temp file
@@ -148,7 +168,7 @@ class InvoiceRAGPipeline:
         def grade_documents(state: State) -> State:
             question = state["question"]
             docs = state["documents"]
-            docs_str = "\\n\\n".join(doc.page_content for doc in docs)
+            docs_str = "\n\n".join(doc.page_content for doc in docs)
             chain = grade_prompt | self.llm | StrOutputParser()
             response = chain.invoke({"docs": docs_str, "question": question})
             decision = "generate" if "yes" in response.lower() else "end"
@@ -158,7 +178,7 @@ class InvoiceRAGPipeline:
         def generate(state: State) -> State:
             question = state["question"]
             docs = state["documents"]
-            docs_str = "\\n\\n".join(doc.page_content for doc in docs)
+            docs_str = "\n\n".join(doc.page_content for doc in docs)
             chain = generate_prompt | self.llm | StrOutputParser()
             answer = chain.invoke({"docs": docs_str, "question": question})
             return {"answer": answer}

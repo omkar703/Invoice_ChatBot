@@ -1,4 +1,4 @@
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from pydantic import BaseModel, Field
 
 
@@ -33,3 +33,15 @@ class HealthResponse(BaseModel):
     """Health check response model"""
     status: str = Field(..., description="Service status")
     version: str = Field(..., description="API version")
+
+
+class JSONUploadRequest(BaseModel):
+    """Request model for direct JSON data upload"""
+    data: Union[Dict[str, Any], List[Dict[str, Any]]] = Field(..., description="JSON data (object or array of objects)")
+    filename: Optional[str] = Field("invoice_data.json", description="Optional filename for the data")
+
+
+class AnalyzeRequest(BaseModel):
+    """Request model for analyze endpoint"""
+    session_id: str = Field(..., description="Session identifier from upload response")
+    question: str = Field(..., description="Natural language question about the invoices")
